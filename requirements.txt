@@ -19,3 +19,5 @@ python-dotenv
 # for websockets + watchfiles later
 websockets
 watchfiles
+email-validator
+pydantic[email]
