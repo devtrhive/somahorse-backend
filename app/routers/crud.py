@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-
+from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models, schemas
 
@@ -137,8 +137,7 @@ def create_outcome(project_id: int, outcome: schemas.ProjectOutcomeCreate, db: S
     db.commit()
     db.refresh(new_outcome)
     return new_outcome
-from sqlalchemy.orm import Session
-from . import models
+
 
 def calculate_match_score(talent_skills, project_skills):
     if not talent_skills:
