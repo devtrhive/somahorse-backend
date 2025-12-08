@@ -1,38 +1,34 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.talent import Talent
-from app.models.project import Project
-from app.security.admin_utils import get_current_admin
+from app.models import Project, Talent
 
 router = APIRouter(prefix="/match", tags=["Matching"])
 
-
-def compute_match_score(talent, project):
-    score = 0
-    for skill in project.skills.split(","):
-        if skill.strip().lower() in talent.skills.lower():
-            score += 1
-    return score
-
-
 @router.get("/{project_id}")
-def match_talents(
-    project_id: int,
-    db: Session = Depends(get_db),
-    admin=Depends(get_current_admin),
-):
-    project = db.query(Project).get(project_id)
+def match_talent(project_id: int, db: Session = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
-        return {"error": "Project not found"}
+        raise HTTPException(status_code=404, detail="Project not found")
 
-    talents = db.query(Talent).all()
+    required = set(project.required_skills or [])
+
+    talents = db.query(Talent).filter(Talent.profile_completed == True).all()
 
     results = []
-    for talent in talents:
-        score = compute_match_score(talent, project)
-        results.append({"talent": talent, "score": score})
+    for t in talents:
+        skill_overlap = len(required.intersection(set(t.skills)))
+        total = len(required) if len(required) > 0 else 1
+        score = skill_overlap / total
 
-    results.sort(key=lambda x: x["score"], reverse=True)
+        results.append({
+            "talent_id": t.id,
+            "full_name": t.full_name,
+            "email": t.email,
+            "skills": t.skills,
+            "score": round(score, 2)
+        })
 
-    return results
+    results = sorted(results, key=lambda x: x["score"], reverse=True)
+
+    return {"project_id": project_id, "matches": results}

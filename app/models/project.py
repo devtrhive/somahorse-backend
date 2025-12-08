@@ -1,6 +1,9 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from app.database import Base
+from sqlalchemy import ARRAY, Text
+
+required_skills = Column(ARRAY(Text), nullable=True, default=list)
 
 class Project(Base):
     __tablename__ = "projects"

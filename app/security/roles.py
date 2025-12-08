@@ -1,29 +1,21 @@
-# app/security/roles.py
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPBearer
+from typing import Optional
+from app.database import get_db
+# For demo: pretend we decode token and get user id and role from firebase/auth.
+# Replace with your real auth integration
 
-from fastapi import Depends, HTTPException, status
-from app.security.auth import get_current_user
+security = HTTPBearer()
 
+def get_current_user(token = Depends(security)):
+    # stub: decode token and return a user object/dict
+    # In production: verify via Firebase Admin SDK and fetch user & roles from DB
+    # Example return:
+    return {"id": 1, "email": "dev@example.com", "role": "admin"}
 
-def _check_role(user: dict, required: str):
-    role = user.get("role") or user.get("custom_claims", {}).get("role")
-
-    if role != required:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Access denied. {required} role required.",
-        )
-
-
-async def require_admin(user = Depends(get_current_user)):
-    _check_role(user, "admin")
-    return user
-
-
-async def require_talent(user = Depends(get_current_user)):
-    _check_role(user, "talent")
-    return user
-
-
-async def require_client(user = Depends(get_current_user)):
-    _check_role(user, "client")
-    return user
+def requires_role(required_role: str):
+    def role_checker(user = Depends(get_current_user)):
+        if not user or user.get("role") != required_role:
+            raise HTTPException(status_code=403, detail={"error":"forbidden","message":f"Insufficient role: {required_role} required"})
+        return user
+    return role_checker

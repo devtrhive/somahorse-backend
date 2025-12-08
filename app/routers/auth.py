@@ -2,36 +2,35 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.security.firebase import verify_firebase_token
+from app.schemas.user import UserCreate, UserLogin, UserResponse
 from app.models.user import User
-from app.schemas.user import UserRead
-from app.security.auth import get_current_user
+from app.core.security import hash_password, verify_password
+from app.core.jwt import create_access_token
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
+@router.post("/register", response_model=UserResponse)
+def register_user(data: UserCreate, db: Session = Depends(get_db)):
+    user_exists = db.query(User).filter(User.email == data.email).first()
+    if user_exists:
+        raise HTTPException(status_code=400, detail="Email already registered")
 
-@router.post("/login", response_model=UserRead)
-def login(id_token: str, db: Session = Depends(get_db)):
-    user_info = verify_firebase_token(id_token)
-
-    if not user_info:
-        raise HTTPException(status_code=401, detail="Invalid Firebase token")
-
-    email = user_info["email"]
-    uid = user_info["uid"]
-
-    user = db.query(User).filter(User.email == email).first()
-
-    # Auto-create user on login (like most platforms)
-    if not user:
-        user = User(email=email, firebase_uid=uid, is_admin=False)
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-
+    user = User(
+        full_name=data.full_name,
+        email=data.email,
+        hashed_password=hash_password(data.password),
+        role=data.role
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
     return user
 
+@router.post("/login")
+def login(data: UserLogin, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == data.email).first()
+    if not user or not verify_password(data.password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="Invalid email or password")
 
-@router.get("/me", response_model=UserRead)
-def get_profile(current_user=Depends(get_current_user)):
-    return current_user
+    token = create_access_token({"sub": user.email, "role": user.role})
+    return {"access_token": token, "token_type": "bearer", "role": user.role}

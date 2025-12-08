@@ -26,3 +26,12 @@ class TalentRead(TalentBase):
     id: int
 
     model_config = ConfigDict(from_attributes=True)
+from pydantic import BaseModel
+
+class TalentResponse(BaseModel):
+    id: int
+    name: str
+    skills: list[str]
+
+    class Config:
+        orm_mode = True

@@ -1,25 +1,34 @@
-# app/main.py
 import os
 import logging
-import time
 from typing import Optional
+import time
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.openapi.models import APIKey, APIKeyIn, SecuritySchemeType
-from fastapi.security import HTTPBearer
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.database import Base, engine
 from app.routers.talent import router as talent_router
 from app.routers.projects import router as project_router
 from app.routers.project_outcomes import router as outcome_router
+from app.routers import matching
+from app.routers.auth import router as auth_router
+
 
 from app.security.firebase import init_firebase
 from app.middleware.rate_limit import RateLimitMiddleware
 
+from fastapi import FastAPI
+from app.routers import auth
 
+app = FastAPI()
+
+app.include_router(auth.router)
+
+# ---------------------------------------------------------
+# Create the FastAPI app (ONLY ONCE)
+# ---------------------------------------------------------
 app = FastAPI(
     title="Somahorse Nexus API",
     version="1.0.0",
@@ -27,24 +36,27 @@ app = FastAPI(
     redoc_url="/redoc",
     openapi_url="/openapi.json",
 )
-app.include_router(matching.router)
+
+# ---------------------------------------------------------
+# Add middleware
+# ---------------------------------------------------------
 app.add_middleware(RateLimitMiddleware)
-# -------------------------
-# Basic logging
-# -------------------------
+
+# ---------------------------------------------------------
+# Include routers
+# ---------------------------------------------------------
+app.include_router(talent_router)
+app.include_router(project_router)
+app.include_router(outcome_router)
+app.include_router(matching.router)
+app.include_router(auth_router)
+
+# ---------------------------------------------------------
+# Logging
+# ---------------------------------------------------------
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("somahorse-backend")
 
-# -------------------------
-# App & config
-# -------------------------
-app = FastAPI(
-    title="Somahorse Nexus API",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
-)
 
 # Read CORS origin from env (set FRONTEND_URL to your frontend host in production)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "*")
@@ -101,26 +113,20 @@ def on_startup():
 # OpenAPI / Swagger: add Bearer auth scheme
 # -------------------------
 # We'll add a "bearerAuth" scheme into the generated OpenAPI schema
+
+from fastapi.openapi.utils import get_openapi
+
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
-
-    openapi_schema = app.openapi()
-    # Add bearerAuth security scheme if not present
-    security_scheme = {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-    }
-    if "components" not in openapi_schema:
-        openapi_schema["components"] = {}
-    if "securitySchemes" not in openapi_schema["components"]:
-        openapi_schema["components"]["securitySchemes"] = {}
-    openapi_schema["components"]["securitySchemes"]["bearerAuth"] = security_scheme
-
-    # Optionally require bearerAuth globally for all endpoints in the docs UI (comment out if not)
-    # openapi_schema["security"] = [{"bearerAuth": []}]
-
+    
+    openapi_schema = get_openapi(
+        title="Somahorse Nexus API",
+        version="1.0.0",
+        description="API documentation for Somahorse",
+        routes=app.routes,
+    )
+    
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
