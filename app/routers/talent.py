@@ -132,3 +132,17 @@ def delete_talent(
     db.delete(talent)
     db.commit()
     return None
+@router.get("/talents")
+def list_talents(
+    location: str = None,
+    min_vetting_score: float = 0.0,
+    db: Session = Depends(get_db)
+):
+    q = db.query(Talent)
+
+    if location:
+        q = q.filter(Talent.location.ilike(location))
+
+    q = q.filter(Talent.vetting_overall_score >= min_vetting_score)
+
+    return q.all()
