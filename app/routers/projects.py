@@ -8,7 +8,7 @@ from app.models.project import Project
 from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
 
 from app.security.admin_utils import get_current_user, get_current_admin
-
+from app.auth.firebase import get_current_user
 router = APIRouter(prefix="/project", tags=["Project"])
 
 
@@ -71,6 +71,9 @@ def update_project(
     role = current_user.get("role")
     user_email = current_user.get("email")
     user_uid = current_user.get("uid")
+@router.get("/projects")
+def list_projects(current_user = Depends(get_current_user)):
+    return {"msg": "Projects visible", "role": current_user.role}
 
     # Ownership check: if your Project has owner_email or owner_uid fields use them
     is_owner = False

@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Project, Talent
+from typing import Optional
+
 
 router = APIRouter(prefix="/v1", tags=["Matching"])
 

@@ -6,6 +6,8 @@ from app.schemas.user import UserCreate, UserLogin, UserResponse
 from app.models.user import User
 from app.core.security import hash_password, verify_password
 from app.core.jwt import create_access_token
+from fastapi import APIRouter, Depends
+from app.auth.firebase import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -34,3 +36,12 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
 
     token = create_access_token({"sub": user.email, "role": user.role})
     return {"access_token": token, "token_type": "bearer", "role": user.role}
+@router.get("/me")
+async def get_me(user = Depends(get_current_user)):
+    return {
+        "uid": user["uid"],
+        "email": user.get("email"),
+        "displayName": user.get("displayName"),
+        "role": user.get("role"),
+        "photoUrl": user.get("photoUrl")
+    }

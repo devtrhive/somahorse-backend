@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, Text, ForeignKey, Table
 from sqlalchemy.orm import relationship
 from app.database import Base
+from app.models.user import User
 
 # Many-to-many: talent <-> skills
 talent_skill_table = Table(
