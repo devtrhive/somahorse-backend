@@ -14,6 +14,9 @@ from app.routers.projects import router as project_router
 from app.routers.project_outcomes import router as outcome_router
 from app.routers import matching
 from app.routers.auth import router as auth_router
+from app.routers.dashboard import router as dashboard_router
+from app.routers.payments import router as payments_router
+
 
 
 from app.security.firebase import init_firebase
@@ -50,6 +53,8 @@ app.include_router(project_router)
 app.include_router(outcome_router)
 app.include_router(matching.router)
 app.include_router(auth_router)
+app.include_router(dashboard_router)
+app.include_router(payments_router)
 
 # ---------------------------------------------------------
 # Logging

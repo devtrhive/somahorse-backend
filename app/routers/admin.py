@@ -6,8 +6,9 @@ from app.schemas.talent import TalentCreate, TalentUpdate, TalentResponse
 from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse
 from app.schemas.project_outcome import ProjectOutcomeCreate, ProjectOutcomeUpdate
 from app.auth.dependencies import get_current_user
-from app.routes.matching import calculate_match
+from app.routers.matching import calculate_match
 from typing import List
+from app.auth.rbac import require_role
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -96,6 +97,12 @@ def list_projects(
     verify_admin(user)
     return db.query(Project).all()
 
+@router.get("/admin/dashboard")
+def admin_dashboard(
+    current_user = Depends(get_current_user),
+    _ = Depends(require_role("admin"))
+):
+    return {"msg": "Admin dashboard"}
 
 @router.post("/projects", response_model=ProjectResponse)
 def create_project(
